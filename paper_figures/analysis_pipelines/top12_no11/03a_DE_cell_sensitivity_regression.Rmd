@@ -1,0 +1,92 @@
+---
+title: "Regression of number of DE genes against cell counts"
+author: "Ethan O'Farrell"
+output:
+  html_document:
+  pdf_document:
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+```
+
+We suspect that a <cluster,drug,time> combination having more cell counts is associated
+with finding more differentially expressed genes in that combination. Our reasoning
+is that more cells will increase whatever confidence level we have in a give gene, 
+no matter the actual differential expression value. 
+
+Our solution to this is to randomly subsample cells such that each combination will
+retain an equal number of cells. This analysis will tell us if that is necessary.
+
+# Load Data
+
+```{r}
+df = read.csv('DE_cell_sensitivity.csv')
+df$gene_fraction = df$gene / 24181
+head(df)
+```
+
+# EDA
+
+```{r, fig.width=8, fig,height=12}
+p1 = df %>%
+  ggplot(aes(x = cells, y = gene, color = name)) +
+  geom_point()
+p2 = df %>%
+  ggplot(aes(x = cells, y = gene, color = de_direction)) +
+  geom_point()
+
+cowplot::plot_grid(p1, p2, ncol=1, align = "v")
+```
+
+We definitely need to consider DE Direction as a covariate
+
+# Linear Model
+
+$\mu = X\beta$ where $\mu$ is the number of genes designated differential
+
+```{r}
+m1 = lm(gene ~ cells + de_direction, data = df)
+summary(m1)
+par(mfrow = c(2,2))
+plot(m1)
+```
+
+# Logistic Model
+
+There is an upper and lower limit to the response variable. It can take on an integer
+value between zero and the number of genes (24181). It would make sense to model 
+this with logistic regression
+
+$\text{logit} (\mu) = X\beta$ where $\mu$ is the fraction of genes designated differential
+
+```{r}
+m2 = glm(gene_fraction ~ cells + de_direction, data = df, family = binomial())
+summary(m2)
+par(mfrow = c(2,2))
+plot(m2)
+```
+This model tells us the number of cells is NOT statistically significant for the
+number of DE genes. This is unfortunate because even tho the other 2 models are 
+both generally interpretable, this should theoretically be the most applicable
+model.
+
+# Poisson Model
+
+Since the fraction of genes designated DE comes nowhere close to the upper limit,
+and since this is integer data (not continuous), Poisson regression also is applicable.
+
+$\log (\mu) = X\beta$ where $\mu$ is the number of genes designated differential
+
+```{r}
+m3 = glm(gene ~ cells + de_direction, data = df, family = poisson())
+summary(m3)
+par(mfrow = c(2,2))
+plot(m3)
+```
+
+Residual diagnostics actually looks the best for the Poisson model, so we will adopt it.
+The number of cells is a significant factor for the number of DE genes. This supports
+our decision to normalize treatment combinations by cell count.
