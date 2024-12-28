@@ -2,6 +2,10 @@
 
 This repository contains analysis scripts for the manuscript "**Single-nucleus transcriptomics reveals time-dependent and cell-type-specific effects of psilocybin on gene expression**" by Liao et al, 2025. 
 
+This study is a collaboration between 
+- the [Alex Kwan lab](alexkwanlab.org) at Cornell University (Meinig School of Biomedical Engineering)
+- the [Kenneth Kwan lab](kwanlab.org) at University of Michigan (Michigan Neuroscience Institue, Department of Human Genetics)
+
 # Usage
 
 ## Reads (fastq) processing
